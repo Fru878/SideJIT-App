@@ -111,20 +111,25 @@ struct SecondView: View {
         URLSession.shared.dataTask(with: url) { data, _, error in
             if let error = error {
                 print("Error fetching data: \(error.localizedDescription)")
+                showAlert2 = true
                 return
             }
             
             if let data = data {
                 print(String(data: data, encoding: .utf8) ?? "Invalid data")
-                do {
-                    let decodedData = try JSONDecoder().decode([Item].self, from: data)
-                    DispatchQueue.main.async {
-                        self.jsonData = decodedData
-                    }
-                } catch {
-                    print("Error decoding data: \(error.localizedDescription)")
-                    DispatchQueue.main.async {
-                        showAlert2 = true
+                if String(data: data, encoding: .utf8) == "" {
+                    showAlert2 = true
+                } else {
+                    do {
+                        let decodedData = try JSONDecoder().decode([Item].self, from: data)
+                        DispatchQueue.main.async {
+                            self.jsonData = decodedData
+                        }
+                    } catch {
+                        print("Error decoding data: \(error.localizedDescription)")
+                        DispatchQueue.main.async {
+                            showAlert2 = true
+                        }
                     }
                 }
             }
@@ -144,35 +149,39 @@ struct SecondView: View {
             }
             
             if let data = data {
-                if allowednotification {
-                    if let dataString = String(data: data, encoding: .utf8), dataString == "Enabled JIT for '\(pressedbutton)'!" {
-                        let content = UNMutableNotificationContent()
-                        content.title = "JIT Succsessfully Enabled"
-                        content.subtitle = "JIT Enabled For \(pressedbutton)"
-                        content.sound = UNNotificationSound.default
-
-                        // show this notification five seconds from now
-                        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
-
-                        // choose a random identifier
-                        let request = UNNotificationRequest(identifier: "EnabledJIT", content: content, trigger: nil)
-
-                        // add our notification request
-                        UNUserNotificationCenter.current().add(request)
-                    } else {
-                        let content = UNMutableNotificationContent()
-                        content.title = "An Error Occured"
-                        content.subtitle = "Please check your SideJITServer Console"
-                        content.sound = UNNotificationSound.default
-
-                        // show this notification five seconds from now
-                        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
-
-                        // choose a random identifier
-                        let request = UNNotificationRequest(identifier: "EnabledJITError", content: content, trigger: nil)
-
-                        // add our notification request
-                        UNUserNotificationCenter.current().add(request)
+                if String(data: data, encoding: .utf8) == "" {
+                    showAlert2 = true
+                } else {
+                    if allowednotification {
+                        if let dataString = String(data: data, encoding: .utf8), dataString == "Enabled JIT for '\(pressedbutton)'!" {
+                            let content = UNMutableNotificationContent()
+                            content.title = "JIT Succsessfully Enabled"
+                            content.subtitle = "JIT Enabled For \(pressedbutton)"
+                            content.sound = UNNotificationSound.default
+                            
+                            // show this notification five seconds from now
+                            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+                            
+                            // choose a random identifier
+                            let request = UNNotificationRequest(identifier: "EnabledJIT", content: content, trigger: nil)
+                            
+                            // add our notification request
+                            UNUserNotificationCenter.current().add(request)
+                        } else {
+                            let content = UNMutableNotificationContent()
+                            content.title = "An Error Occured"
+                            content.subtitle = "Please check your SideJITServer Console"
+                            content.sound = UNNotificationSound.default
+                            
+                            // show this notification five seconds from now
+                            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+                            
+                            // choose a random identifier
+                            let request = UNNotificationRequest(identifier: "EnabledJITError", content: content, trigger: nil)
+                            
+                            // add our notification request
+                            UNUserNotificationCenter.current().add(request)
+                        }
                     }
                 }
             }
