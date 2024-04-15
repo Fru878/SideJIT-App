@@ -10,13 +10,14 @@ import SwiftUI
 struct ContentView: View {
     @State var isAuthenticating = false
     @AppStorage("allowednotification") var allowednotification = false
+    @AppStorage("HASIPBEENSET") var HASIPBEENSET = false
     var body: some View {
         NavigationView {
             VStack {
                     NavigationLink(destination: SecondView()) {
                         Text("Enable JIT")
                             .padding()
-                            .background(Color.blue)
+                            .background(Color.purple)
                             .foregroundColor(.white)
                             .cornerRadius(10)
                             .onAppear{
@@ -63,6 +64,7 @@ struct SecondView: View {
                         }) {
                             Text(item.name)
                                 .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(Color.purple)
                         }
                     }
                 }
@@ -83,12 +85,18 @@ struct SecondView: View {
             Text("")
                 .alert("SideJITServer Details", isPresented: $showAlert) {
                     TextField("IP Address", text: $username)
+                        .foregroundColor(Color.purple)
                         .textInputAutocapitalization(.never)
                     TextField("UDID", text: $password)
+                        .foregroundColor(Color.purple)
                     Button("OK", role: .cancel) {
                     authenticate()
                     self.presentationMode.wrappedValue.dismiss()
+                        if username.hasPrefix("https://") && username.hasSuffix(":8080") {
+                            username = "http://" + username.replacingOccurrences(of: "https://", with: "")
+                        }
                     }
+                    .foregroundColor(Color.purple)
                 } message: {
                     Text("Please enter your Details.")
                 }.onAppear{
@@ -105,6 +113,7 @@ struct SecondView: View {
         let combinedString = username + "/" + password + "/"
         guard let url = URL(string: combinedString) else {
             print("Invalid URL")
+            showAlert2 = true
             return
         }
         
@@ -117,71 +126,66 @@ struct SecondView: View {
             
             if let data = data {
                 print(String(data: data, encoding: .utf8) ?? "Invalid data")
-                if String(data: data, encoding: .utf8) == "" {
-                    showAlert2 = true
-                } else {
-                    do {
-                        let decodedData = try JSONDecoder().decode([Item].self, from: data)
-                        DispatchQueue.main.async {
-                            self.jsonData = decodedData
-                        }
-                    } catch {
-                        print("Error decoding data: \(error.localizedDescription)")
-                        DispatchQueue.main.async {
-                            showAlert2 = true
-                        }
+                do {
+                    let decodedData = try JSONDecoder().decode([Item].self, from: data)
+                    DispatchQueue.main.async {
+                        self.jsonData = decodedData
+                    }
+                } catch {
+                    print("Error decoding data: \(error.localizedDescription)")
+                    DispatchQueue.main.async {
+                        showAlert2 = true
                     }
                 }
             }
         }.resume()
     }
+    
     private func getrequest() {
         let combinedString = username + "/" + password + "/" + pressedbutton + "/"
         guard let url = URL(string: combinedString) else {
             print("Invalid URL")
+            showAlert2 = true
             return
         }
         
         URLSession.shared.dataTask(with: url) { data, _, error in
             if let error = error {
                 print("Error fetching data: \(error.localizedDescription)")
+                showAlert2 = true
                 return
             }
             
             if let data = data {
-                if String(data: data, encoding: .utf8) == "" {
-                    showAlert2 = true
-                } else {
-                    if allowednotification {
-                        if let dataString = String(data: data, encoding: .utf8), dataString == "Enabled JIT for '\(pressedbutton)'!" {
-                            let content = UNMutableNotificationContent()
-                            content.title = "JIT Succsessfully Enabled"
-                            content.subtitle = "JIT Enabled For \(pressedbutton)"
-                            content.sound = UNNotificationSound.default
-                            
-                            // show this notification five seconds from now
-                            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
-                            
-                            // choose a random identifier
-                            let request = UNNotificationRequest(identifier: "EnabledJIT", content: content, trigger: nil)
-                            
-                            // add our notification request
-                            UNUserNotificationCenter.current().add(request)
-                        } else {
-                            let content = UNMutableNotificationContent()
-                            content.title = "An Error Occured"
-                            content.subtitle = "Please check your SideJITServer Console"
-                            content.sound = UNNotificationSound.default
-                            
-                            // show this notification five seconds from now
-                            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
-                            
-                            // choose a random identifier
-                            let request = UNNotificationRequest(identifier: "EnabledJITError", content: content, trigger: nil)
-                            
-                            // add our notification request
-                            UNUserNotificationCenter.current().add(request)
-                        }
+                if allowednotification {
+                    if let dataString = String(data: data, encoding: .utf8), dataString == "Enabled JIT for '\(pressedbutton)'!" {
+                        let content = UNMutableNotificationContent()
+                        content.title = "JIT Succsessfully Enabled"
+                        content.subtitle = "JIT Enabled For \(pressedbutton)"
+                        content.sound = UNNotificationSound.default
+
+                        // show this notification five seconds from now
+                        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+
+                        // choose a random identifier
+                        let request = UNNotificationRequest(identifier: "EnabledJIT", content: content, trigger: nil)
+
+                        // add our notification request
+                        UNUserNotificationCenter.current().add(request)
+                    } else {
+                        let content = UNMutableNotificationContent()
+                        content.title = "An Error Occured"
+                        content.subtitle = "Please check your SideJITServer Console"
+                        content.sound = UNNotificationSound.default
+
+                        // show this notification five seconds from now
+                        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+
+                        // choose a random identifier
+                        let request = UNNotificationRequest(identifier: "EnabledJITError", content: content, trigger: nil)
+
+                        // add our notification request
+                        UNUserNotificationCenter.current().add(request)
                     }
                 }
             }
@@ -202,7 +206,7 @@ struct ContinueButton: View {
     var body: some View{
         Text(text)
             .frame(width: 200, height: 50, alignment: .center)
-            .background(Color(red: 48/255, green: 99/255, blue: 142/255))
+            .background(Color.purple)
             .foregroundColor(.white)
             .cornerRadius(25)
     }
@@ -213,19 +217,24 @@ struct PopupButtonText: View {
     @AppStorage("username") var username = ""
     @AppStorage("password") var password = ""
     @AppStorage("HASIPBEENSET") var HASIPBEENSET = false
-    
+    @State private var jsonData = ""
     var body: some View {
         Button(action: {
             isAuthenticating.toggle()
+            //fetchData2()
         }) {
             Image(systemName: "gearshape.fill")
         }
+        .foregroundColor(Color.purple)
         .alert("SideJIT Settings", isPresented: $isAuthenticating) {
             TextField("IP Address", text: $username)
                 .textInputAutocapitalization(.never)
             TextField("UDID", text: $password)
             Button("OK", role: .cancel) {
                 authenticate()
+                if username.hasPrefix("https://") && username.hasSuffix(":8080") {
+                    username = "http://" + username.replacingOccurrences(of: "https://", with: "")
+                }
             }
             Button("Refresh", action: refresh1)
         } message: {
@@ -236,7 +245,31 @@ struct PopupButtonText: View {
         HASIPBEENSET = true
     }
     func refresh1() {
-        let combinedString = username + "/re"
+        let combinedString2 = username + "/re/"
+        guard let url = URL(string: combinedString2) else {
+            print("Invalid URL")
+            return
+        }
+        
+        URLSession.shared.dataTask(with: url) { data, _, error in
+            if let error = error {
+                print("Error fetching data: \(error.localizedDescription)")
+                return
+            }
+            
+            if let data = data {
+                print(String(data: data, encoding: .utf8) ?? "Invalid data")
+                do {
+                    let decodedData = try JSONDecoder().decode([Item].self, from: data)
+                    print(decodedData)
+                } catch {
+                    print("Error decoding data: \(error.localizedDescription)")
+                }
+            }
+        }.resume()
+    }
+    private func fetchData2() {
+        let combinedString = username + "/ver/"
         guard let url = URL(string: combinedString) else {
             print("Invalid URL")
             return
@@ -247,7 +280,19 @@ struct PopupButtonText: View {
                 print("Error fetching data: \(error.localizedDescription)")
                 return
             }
-        }
+            
+            if let data = data {
+                do {
+                    let decodedData = try JSONDecoder().decode([String: String].self, from: data)
+                    DispatchQueue.main.async {
+                        self.jsonData = decodedData.map { "\($0.key): \($0.value)" }.joined(separator: "\n")
+                        print(jsonData)
+                    }
+                } catch {
+                    print("Error decoding data: \(error.localizedDescription)")
+                }
+            }
+        }.resume()
     }
 }
 
